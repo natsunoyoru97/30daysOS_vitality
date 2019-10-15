@@ -40,4 +40,5 @@ Vitality OS是在macOS下开发的、基于川和秀实所著《30天自制操�
 # TODO List
 
 - 改进Makefile的逻辑：在文件不全的情况下删除指定文档、改进脚本运行出错提示
+- bootstrap.c所引用的sprintf函数有安全隐患，写一个更安全的版本
 - 根据功能分割C文件
