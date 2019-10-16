@@ -37,8 +37,15 @@ Vitality OS是在macOS下开发的、基于川和秀实所著《30天自制操�
 - 开始分配段（segments），初始化GDT与IDT
 - 删除前几天产生的多余文档，修复vitality_0.2中Makefile的路径引用bug
 
+### 第6天
+
+- 分割c文件，添加头文件（*.h）
+- 简化Makefile逻辑，增加一般规则
+- 初始化PIC
+- 添加键盘操作的中断处理
+
 # TODO List
 
 - 改进Makefile的逻辑：在文件不全的情况下删除指定文档、改进脚本运行出错提示
 - bootstrap.c所引用的sprintf函数有安全隐患，写一个更安全的版本
-- 根据功能分割C文件
+- 继续完成对鼠标操作的中断处理
