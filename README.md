@@ -79,7 +79,7 @@ Vitality OS是在macOS下开发的、基于川和秀实所著《30天自制操�
 - **修正书中代码的bug：测试性能模块无法在QEMU上正常模拟**
 - 改变缓冲区FIFO的内容（由unsigned char变为int）
 - 继续加快中断处理
-- 利用哨兵值（sparrow）简化timer.c中各函数的逻辑
+- 利用哨兵值简化timer.c中各函数的逻辑
 
 # TODO List
 
