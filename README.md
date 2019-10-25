@@ -103,7 +103,7 @@ Vitality OS是在macOS下开发的、基于川和秀实所著《30天自制操�
 
 - 增加命令行界面，允许输入字母、数字及部分特殊字符（通过shift+按键实现）
 - 增加切换窗口功能
-- **苹果mac键盘与Windows键盘设置不同，需要更改table1，Capslock的设置也需做相应更改（无法识别0xff）**
+- 苹果mac键盘与Windows键盘设置不同，需要更改table，Capslock的设置也需做相应更改（无法识别0xff
 - **由于机种所限，无法测试Numlock和ScrollLock是否运行正常**
 
 ### 第18天
