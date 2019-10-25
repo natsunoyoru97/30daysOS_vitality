@@ -14,7 +14,7 @@ BIM2HRB  = $(TOOLPATH)bim2hrb.exe
 RULEFILE = $(TOOLPATH)vitality/vitality.rul
 EDIMG    = $(TOOLPATH)edimg.exe
 COPY     = cp
-DEL      = del
+DEL      = rm
 
 default :
 	$(MAKE) img
@@ -72,15 +72,15 @@ run :
 
 #BUG: 当ipl.bin不存在无法删除已有的ipl.lst
 clean :
-	-$(DEL) *.bin
-	-$(DEL) *.lst
-	-$(DEL) *.gas
-	-$(DEL) *.obj
-	-$(DEL) bootpack.map
-	-$(DEL) bootpack.bim
-	-$(DEL) bootpack.hrb
-	-$(DEL) vitality.sys
+	$(DEL) *.bin
+	$(DEL) *.lst
+	$(DEL) *.gas
+	$(DEL) *.obj
+	$(DEL) bootpack.map
+	$(DEL) bootpack.bim
+	$(DEL) bootpack.hrb
+	$(DEL) vitality.sys
 
 src_only :
 	$(MAKE) clean
-	-$(DEL) vitality.img
+	$(DEL) vitality.img

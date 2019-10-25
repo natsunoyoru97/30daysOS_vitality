@@ -165,7 +165,7 @@ mts_loop:
 		XOR     DWORD [EBX],0xffffffff  ; *p ^= 0xffffffff
 		CMP     EDI,[EBX]				; if (*p != pat1) goto fin;
 		JNE     mts_fin
-		XOR     DWORD [EBX,0xffffffff	; *p ^= 0xffffffff
+		XOR     DWORD [EBX],0xffffffff	; *p ^= 0xffffffff
 		CMP     ESI,[EBX]				; if (*p != pat0) goto fin;
 		JNE     mts_fin
 		MOV     [EBX],EDX				; *p = old;
