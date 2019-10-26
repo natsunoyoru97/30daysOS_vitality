@@ -114,8 +114,14 @@ Vitality OS是在macOS下开发的、基于川和秀实所著《30天自制操�
 - 支持mem、clear、ls命令（这里采用的是shell命令，不是原书的windows命令）
 - 为mac增加了按下option键输入字符的映射（因目前不支持非ascii字符暂时无法使用）
 
+# 第19天
+
+- 支持cat命令以查看文件内容
+- 支持FAT格式
+
 # TODO List
 
+- **重大bug：在QEMU中一旦激活鼠标（ctrl + alt + g）键盘输入就会发生异常，只能输入0、1、2、3**
 - **Capslock的设置需做更改（无法识别0xff）**
 - 支持非ascii字符
 - 在不同的环境中测试代码
