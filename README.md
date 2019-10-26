@@ -114,7 +114,7 @@ Vitality OS是在macOS下开发的、基于川和秀实所著《30天自制操�
 - 支持mem、clear、ls命令（这里采用的是shell命令，不是原书的windows命令）
 - 为mac增加了按下option键输入字符的映射（因目前不支持非ascii字符暂时无法使用）
 
-# 第19天
+### 第19天
 
 - 支持cat命令以查看文件内容
 - 支持FAT格式
