@@ -265,6 +265,8 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 	char name[18], *p, *q;
 	struct TASK *task = task_now();
 	int i, segsiz, datsiz, esp, dathrb;
+	struct SHTCTL *shtctl;
+	struct SHEET *sht;
 
 	//生成文件名
 	for (i = 0; i < 13; i++) {
@@ -305,6 +307,14 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 			}
 
 			start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
+			shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
+
+			for (i = 0; i < MAX_SHEETS; i++) {
+				sht = &(shtctl->sheets0[i]);
+				if (sht->flags != 0 && sht->task == task) {
+					sheet_free(sht);
+				}
+			}
 			memman_free_4k(memman, (int) q, segsiz);
 		} else {
 			cons_putstr0(cons, ".hrb file format error.\n");
@@ -325,6 +335,7 @@ void *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int
 	int *reg = &eax + 1;
 		/* reg[0] : EDI,   reg[1] : ESI,   reg[2] : EBP,   reg[3] : ESP */
 		/* reg[4] : EBX,   reg[5] : EDX,   reg[6] : ECX,   reg[7] : EAX */
+	int i;
 
 	//用EDI寄存API，可存储多达42亿个API
 	if (edx == 1) {
@@ -337,19 +348,78 @@ void *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int
 		return &(task->tss.esp0);
 	} else if (edx == 5) {
 		sht = sheet_alloc(shtctl);
+		sht->task = task;
 		sheet_setbuf(sht, (char *) ebx + ds_base, esi, edi, eax);
 		make_window8((char *) ebx + ds_base, esi, edi, (char *) ecx + ds_base, 0);
 		sheet_slide(sht, 100, 50);
 		sheet_updown(sht, 3);	//背景层高度为3，位于task_a之上
 		reg[7] = (int) sht;
 	} else if (edx == 6) {
-		sht = (struct SHEET *) ebx;
+		sht = (struct SHEET *) (ebx & 0xfffffffe);
 		putfonts8_asc(sht->buf, sht->bxsize, esi, edi, eax, (char *) ebp + ds_base);
 		sheet_refresh(sht, esi, edi, esi + ecx * 8, edi + 16);
 	} else if (edx == 7) {
-		sht = (struct SHEET *) ebx;
+		sht = (struct SHEET *) (ebx & 0xfffffffe);
 		boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
 		sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+	} else if (edx == 8) {
+		memman_init((struct MEMMAN *) (ebx + ds_base));
+		ecx &= 0xfffffff0; //以16字节为单位
+		memman_free((struct MEMMAN *) (ebx + ds_base), eax, ecx);
+	} else if (edx == 9) {
+		ecx = (ecx + 0x0f) & 0xfffffff0; //以16字节为单位进位取整
+		reg[7] = memman_alloc((struct MEMMAN *) (ebx + ds_base), ecx);
+	} else if (edx == 10) {
+		ecx = (ecx + 0x0f) & 0xfffffff0; //以16字节为单位进位取整
+		memman_free((struct MEMMAN *) (ebx + ds_base), eax, ecx);
+	} else if (edx == 11) {
+		sht = (struct SHEET *) (ebx & 0xfffffffe);
+		sht->buf[sht->bxsize * edi + esi] = eax;
+
+		if ((ebx & 1) == 0) {
+			sheet_refresh(sht, esi, edi, esi + 1, edi + 1);
+		}
+	} else if (edx == 12) {
+		sht = (struct SHEET *) ebx;
+		sheet_refresh(sht, eax, ecx, esi, edi);
+	} else if (edx == 13) {
+		sht = (struct SHEET *) (ebx & 0xfffffffe);
+		hrb_api_linewin(sht, eax, ecx, esi, edi, ebp);
+
+		if ((ebx & 1) == 0) {
+			sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+		}
+	} else if (edx == 14) {
+		sheet_free((struct SHEET *) ebx);
+	} else if (edx == 15) {
+		for (;;) {
+			io_cli();
+			if (fifo32_status(&task->fifo) == 0) {
+				if (eax != 0) {
+					task_sleep(task);
+				} else {
+					io_sti();
+					reg[7] = -1;
+					return 0;
+				}
+			}
+			i = fifo32_get(&task->fifo);
+			io_sti();
+			if (i <= 1) {
+				timer_init(cons->timer, &task->fifo, 1);
+				timer_settime(cons->timer, 50);
+			}
+			if (i == 2) {
+				cons->cur_c = COL8_FFFFFF;
+			}
+			if (i == 3) {
+				cons->cur_c = -1;
+			}
+			if (256 <= i && i <= 511) {
+				reg[7] = i - 256;
+				return 0;
+			}
+		}
 	}
 	return 0;
 }
@@ -376,3 +446,51 @@ int *inthandler0d(int *esp)
 	return &(task->tss.esp0);
 }
 
+void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, int col)
+{
+	int i, x, y, len, dx, dy;
+
+	dx = x1 - x0;
+	dy = y1 - y0;
+	x = x0 << 10;
+	y = y0 << 10;
+	if (dx < 0) {
+		dx = - dx;
+	}
+	if (dy < 0) {
+		dy = - dy;
+	}
+	if (dx >= dy) {
+		len = dx + 1;
+		if (x0 > x1) {
+			dx = -1024;
+		} else {
+			dx =  1024;
+		}
+		if (y0 <= y1) {
+			dy = ((y1 - y0 + 1) << 10) / len;
+		} else {
+			dy = ((y1 - y0 - 1) << 10) / len;
+		}
+	} else {
+		len = dy + 1;
+		if (y0 > y1) {
+			dy = -1024;
+		} else {
+			dy =  1024;
+		}
+		if (x0 <= x1) {
+			dx = ((x1 - x0 + 1) << 10) / len;
+		} else {
+			dx = ((x1 - x0 - 1) << 10) / len;
+		}
+	}
+
+	for (i = 0; i < len; i++) {
+		sht->buf[(y >> 10) * sht->bxsize + (x >> 10)] = col;
+		x += dx;
+		y += dy;
+	}
+
+	return;
+}

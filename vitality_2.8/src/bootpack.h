@@ -132,7 +132,7 @@ void inthandler2c(int *esp);
 void enable_mouse(struct FIFO32 *fifo, int data0, struct MOUSE_DEC *mdec);
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat);
 
-/* memory.c */
+// memory.c
 #define MEMMAN_FREES		4090	/* これで約32KB */
 #define MEMMAN_ADDR			0x003c00000
 struct FREEINFO {	/* あき情報 */
@@ -157,6 +157,7 @@ struct SHEET {
 	unsigned char *buf;
 	int bxsize, bysize, vx0, vy0, col_inv, height, flags;
 	struct SHTCTL *ctl;
+	struct TASK *task;
 };
 
 struct SHTCTL {
@@ -248,6 +249,7 @@ void make_wtitle8(unsigned char *buf, int xsize, char *title, char act);
 struct CONSOLE {
 	struct SHEET *sht;
 	int cur_x, cur_y, cur_c;
+	struct TIMER *timer;
 };
 
 void console_task(struct SHEET *sheet, unsigned int memtotal);
@@ -264,6 +266,7 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline);
 void *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 int *inthandler0d(int *esp);
 int *inthandler0c(int *esp);
+void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, int col);
 
 //file.c
 struct FILEINFO {
