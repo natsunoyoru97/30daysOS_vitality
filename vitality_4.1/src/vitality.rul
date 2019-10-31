@@ -1,0 +1,18 @@
+format:
+	//本区域记载链接方案
+	code(align:1, logic:0x24,      file:0x24);
+	data(align:4, logic:stack_end, file:code_end);
+
+file:
+	//本区域记载没在命令行写过的.obj和.lib文件
+	/* なお、このセクションはフルパスで書いてもよい。 */
+	/* 例：  c:/osask/gg00libc.lib;  */
+	/Users/natsunoyoru/Desktop/30days_OS/tolset/z_tools/vitality/vitallibc.lib;
+	/Users/natsunoyoru/Desktop/30days_OS/tolset/z_tools/vitality/golibc.lib;
+
+label:
+	/* 必ずリンクしなければいけないラベルを指定 */
+	/* エントリポイントを指定すればいいと思ってください */
+	_HariStartup;
+
+	//以上三部分的顺序不能更改！
