@@ -59,10 +59,8 @@ void HariMain(void)
 	struct SHEET *sht = 0, *key_win, *sht2;
 	int *fat;
 	unsigned char *nihongo;
-	//unsigned char *hanyu;
 	struct FILEINFO *finfo;
 	extern char hankaku[4096];
-	//extern char hanzi[];
 
 	init_gdtidt();
 	init_pic();

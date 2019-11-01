@@ -10,15 +10,15 @@ default :
 	wine $(MAKE) img
 
 ########
-vitality.img : vitality/ipl10.bin vitality/vitality.sys Makefile \
+vitality.img : vitality/ipl20.bin vitality/vitality.sys Makefile \
 		winhelo/winhelo.hrb winhelo2/winhelo2.hrb winhelo3/winhelo3.hrb \
 		stars2/stars2.hrb lines/lines.hrb walk/walk.hrb noodle/noodle.hrb \
 		color/color.hrb color2/color2.hrb typeipl/typeipl.hrb type/type.hrb \
-		iroha/iroha.hrb
+		iroha/iroha.hrb chklang/chklang.hrb
 	$(EDIMG) imgin:$(TOOLPATH)fdimg0at.tek \
-		wbinimg src:vitality/ipl10.bin len:512 from:0 to:0 \
+		wbinimg src:vitality/ipl20.bin len:512 from:0 to:0 \
 		copy from:vitality/vitality.sys to:@: \
-		copy from:vitality/ipl10.nas to:@: \
+		copy from:vitality/ipl20.nas to:@: \
 		copy from:make.sh to:@: \
 		copy from:winhelo/winhelo.hrb to:@: \
 		copy from:winhelo2/winhelo2.hrb to:@: \
@@ -31,6 +31,9 @@ vitality.img : vitality/ipl10.bin vitality/vitality.sys Makefile \
 		copy from:color2/color2.hrb to:@: \
 		copy from:typeipl/typeipl.hrb to:@: \
 		copy from:type/type.hrb to:@: \
+		copy from:chklang/chklang.hrb to:@: \
+		copy from:euc.txt to:@: \
+		copy from:gb.txt to:@: \
 		copy from:iroha/iroha.hrb to:@: \
 		copy from:nihongo/nihongo.fnt to:@: \
 		imgout:vitality.img
@@ -77,6 +80,7 @@ full :
 	$(MAKE) -C typeipl
 	$(MAKE) -C type
 	$(MAKE) -C iroha
+	$(MAKE) -C chklang
 	$(MAKE) vitality.img
 
 run_full :
@@ -113,6 +117,7 @@ clean_full :
 	$(MAKE) -C typeipl		clean
 	$(MAKE) -C type  		clean
 	$(MAKE) -C iroha  		clean
+	$(MAKE) -C chklang		clean
 
 src_only_full :
 	$(MAKE) -C vitality		src_only
@@ -133,6 +138,7 @@ src_only_full :
 	$(MAKE) -C typeipl		src_only
 	$(MAKE) -C type 		src_only
 	$(MAKE) -C iroha 		src_only
+	$(MAKE) -C chklang		src_only
 	-$(DEL) vitality.img
 
 refresh :

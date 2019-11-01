@@ -1,6 +1,9 @@
 //asmhead.nas
 struct BOOTINFO {
-	char cyls, leds, vmode, reserve;
+	char cyls;
+	char leds;
+	char vmode;
+	char reserve;
 	short scrnx, scrny;
 	char *vram;
 };
@@ -25,7 +28,6 @@ void asm_inthandler0c(void);
 void asm_inthandler0d(void);
 void asm_inthandler20(void);
 void asm_inthandler21(void);
-void asm_inthandler27(void);
 void asm_inthandler2c(void);
 unsigned int memtest_sub(unsigned int start, unsigned int end);
 void farjmp(int eip, int cs);
@@ -55,7 +57,6 @@ void putfonts8_asc(char *vram, int xsize, int x, int y, char c, unsigned char *s
 void init_mouse_cursor8(char *mouse, char bc);
 void putblock8_8(char *vram, int vxsize, int pxsize,
 	int pysize, int px0, int py0, char *buf, int bxsize);
-
 #define COL8_000000		0
 #define COL8_FF0000		1
 #define COL8_00FF00		2
@@ -79,13 +80,11 @@ struct SEGMENT_DESCRIPTOR {
 	char base_mid, access_right;
 	char limit_high, base_high;
 };
-
 struct GATE_DESCRIPTOR {
 	short offset_low, selector;
 	char dw_count, access_right;
 	short offset_high;
 };
-
 void init_gdtidt(void);
 void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar);
 void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
@@ -103,7 +102,6 @@ void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
 
 //int.c
 void init_pic(void);
-void inthandler27(int *esp);
 #define PIC0_ICW1		0x0020
 #define PIC0_OCW2		0x0020
 #define PIC0_IMR		0x0021
@@ -153,21 +151,18 @@ int memman_free_4k(struct MEMMAN *man, unsigned int addr, unsigned int size);
 
 //sheet.c
 #define MAX_SHEETS        256
-
 struct SHEET {
 	unsigned char *buf;
 	int bxsize, bysize, vx0, vy0, col_inv, height, flags;
 	struct SHTCTL *ctl;
 	struct TASK *task;
 };
-
 struct SHTCTL {
 	unsigned char *vram, *map;
 	int xsize, ysize, top;
 	struct SHEET *sheets[MAX_SHEETS];
 	struct SHEET sheets0[MAX_SHEETS];
 };
-
 struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram, int xsize, int ysize);
 struct SHEET *sheet_alloc(struct SHTCTL *ctl);
 void sheet_setbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize, int col_inv);
@@ -185,13 +180,11 @@ struct TIMER {
 	struct FIFO32 *fifo;
 	int data;
 };
-
 struct TIMERCTL {
 	unsigned int count, next;
 	struct TIMER *t0;
 	struct TIMER timers0[MAX_TIMER];
 };
-
 extern struct TIMERCTL timerctl;
 void init_pit(void);
 struct TIMER *timer_alloc(void);
@@ -207,14 +200,12 @@ void timer_cancelall(struct FIFO32 *fifo);
 #define TASK_GDT0        3    //定义从GDT第几号开始分配TSS
 #define MAX_TASKS_LV	100
 #define MAX_TASKLEVELS	10
-
 struct TSS32 {
 	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
 	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
 	int es, cs, ss, ds, fs, gs;
 	int ldtr, iomap;
 };
-
 struct TASK {
 	int sel, flags; //sel是GDT编号
 	int level, priority;
@@ -226,22 +217,19 @@ struct TASK {
 	struct FILEHANDLE *fhandle;
 	int *fat;
 	char *cmdline;
-	char langmode;
+	unsigned char langmode, langbyte1;
 };
-
 struct TASKLEVEL {
 	int running;
 	int now;
 	struct TASK *tasks[MAX_TASKS_LV];
 };
-
 struct TASKCTL {
 	int now_lv; //正在运行的任务数等级
 	char lv_change; //记录等级变化
 	struct TASKLEVEL level[MAX_TASKLEVELS];
 	struct TASK tasks0[MAX_TASKS];
 };
-
 extern struct TASKCTL *taskctl;
 extern struct TIMER *task_timer;
 struct TASK *task_now(void);
@@ -269,14 +257,13 @@ struct FILEHANDLE {
 	int size;
 	int pos;
 };
-
-void console_task(struct SHEET *sheet, unsigned int memtotal);
+void console_task(struct SHEET *sheet, int memtotal);
 void cons_putchar(struct CONSOLE *cons, int chr, char move);
 void cons_newline(struct CONSOLE *cons);
 void cons_putstr0(struct CONSOLE *cons, char *s);
 void cons_putstr1(struct CONSOLE *cons, char *s, int l);
-void cons_runcmd(char *cmdline, struct CONSOLE *cons, int *fat, unsigned int memtotal);
-void cmd_mem(struct CONSOLE *cons, unsigned int memtotal);
+void cons_runcmd(char *cmdline, struct CONSOLE *cons, int *fat, int memtotal);
+void cmd_mem(struct CONSOLE *cons, int memtotal);
 void cmd_clear(struct CONSOLE *cons);
 void cmd_ls(struct CONSOLE *cons);
 void cmd_exit(struct CONSOLE *cons, int *fat);
@@ -284,7 +271,7 @@ void cmd_start(struct CONSOLE *cons, char *cmdline, int memtotal);
 void cmd_ncst(struct CONSOLE *cons, char *cmdline, int memtotal);
 void cmd_langmode(struct CONSOLE *cons, char *cmdline);
 int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline);
-void *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
+int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 int *inthandler0d(int *esp);
 int *inthandler0c(int *esp);
 void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, int col);
@@ -296,7 +283,6 @@ struct FILEINFO {
 	unsigned short time, date, clustno;
 	unsigned int size;
 };
-
 void file_readfat(int *fat, unsigned char *img);
 void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
@@ -304,5 +290,3 @@ struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 // bootpack.c
 struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal);
 struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal);
-
-

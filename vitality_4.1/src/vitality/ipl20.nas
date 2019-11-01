@@ -1,7 +1,7 @@
 ; vitality-ipl
 ; TAB=4
 
-CYLS	EQU    10
+CYLS	EQU    20
 		ORG    0x7c00
 
 ; FAT12磁盘格式记述
@@ -91,14 +91,17 @@ putloop:
 		INT    0x10
 		JMP    putloop
 fin:
-		HLT
-		JMP    fin
+		HLT							; 何かあるまでCPUを停止させる
+		JMP    fin					; 無限ループ
 msg:
 		DB    0x0a, 0x0a
 		DB    "load error"
 		DB    0x0a
 		DB    0
 
-		RESB 0x7dfe-$
+		RESB 0x7dfe-$ 				; 0x7dfeまでを0x00で埋める命令
 
 		DB    0x55, 0xaa
+
+; 大切なので、気をつけてしなきゃ
+; 日本語です！日本語ですよー

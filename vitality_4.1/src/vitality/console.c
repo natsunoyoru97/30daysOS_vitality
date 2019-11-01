@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void console_task(struct SHEET *sheet, unsigned int memtotal)
+void console_task(struct SHEET *sheet, int memtotal)
 {
 	struct TASK *task = task_now();
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
@@ -35,6 +35,7 @@ void console_task(struct SHEET *sheet, unsigned int memtotal)
 	} else {
 		task->langmode = 0;
 	}
+	task->langbyte1 = 0;
 
 	//显示program
 	cons_putchar(&cons, '>', 1);
@@ -154,6 +155,7 @@ void cons_newline(struct CONSOLE *cons)
 {
 	int x, y;
 	struct SHEET *sheet = cons->sht;
+	struct TASK *task = task_now();
 
 	if (cons->cur_y < 28 + 112) {
 		cons->cur_y += 16;
@@ -174,6 +176,9 @@ void cons_newline(struct CONSOLE *cons)
 		}
 	}
 	cons->cur_x = 8;
+	if (task->langmode == 1 && task->langbyte1 != 0) {
+		cons->cur_x = 16;
+	}
 	return;
 }
 
@@ -194,7 +199,7 @@ void cons_putstr1(struct CONSOLE *cons, char *s, int l)
 	return;
 }
 
-void cons_runcmd(char *cmdline, struct CONSOLE *cons, int *fat, unsigned int memtotal)
+void cons_runcmd(char *cmdline, struct CONSOLE *cons, int *fat, int memtotal)
 {
 	if (strcmp(cmdline, "mem") == 0 && cons->sht != 0) {
 		cmd_mem(cons,memtotal);
@@ -218,7 +223,7 @@ void cons_runcmd(char *cmdline, struct CONSOLE *cons, int *fat, unsigned int mem
 	return;
 }
 
-void cmd_mem(struct CONSOLE *cons, unsigned int memtotal)
+void cmd_mem(struct CONSOLE *cons, int memtotal)
 {
 	struct MEMMAN *memman = (struct MEMMAN *) MEMMAN_ADDR;
 	char s[60];
@@ -273,7 +278,9 @@ void cmd_exit(struct CONSOLE *cons, int *fat)
 	struct TASK *task = task_now();
 	struct SHTCTL *shtctl = (struct SHTCTL *) *((int *) 0x0fe4);
 	struct FIFO32 *fifo = (struct FIFO32 *) *((int *) 0x0fec);
-	timer_cancel(cons->timer);
+	if (cons->sht != 0) {
+		timer_cancel(cons->timer);
+	}
 	memman_free_4k(memman, (int) fat, 4 * 2880);
 	io_cli();
 	if (cons->sht != 0) {
@@ -320,7 +327,7 @@ void cmd_langmode(struct CONSOLE *cons, char *cmdline)
 {
 	struct TASK *task = task_now();
 	unsigned char mode = cmdline[9] - '0';
-	if (mode <= 1) {
+	if (mode <= 2) {
 		task->langmode = mode;
 	} else {
 		cons_putstr0(cons, "mode number error.\n");
@@ -369,7 +376,6 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 			dathrb = *((int *) (p + 0x0014));
 			q = (char *) memman_alloc_4k(memman,segsiz); //应用程序专用内存空间
 			task->ds_base = (int) q;
-			*((int *) 0xfe8) = (int) q;
 			set_segmdesc(task->ldt + 0, finfo->size - 1, (int) p, AR_CODE32_ER + 0x60);
 			set_segmdesc(task->ldt + 1, segsiz - 1,      (int) q, AR_DATA32_RW + 0x60);
 			for (i = 0; i < datsiz; i++) {
@@ -392,6 +398,7 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 			}
 			timer_cancelall(&task->fifo);
 			memman_free_4k(memman, (int) q, segsiz);
+			task->langbyte1 = 0;
 		} else {
 			cons_putstr0(cons, ".hrb file format error.\n");
 		}
@@ -402,7 +409,7 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 	return 0;
 }
 
-void *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
+int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
 {
 	struct TASK *task = task_now();
 	int ds_base = task->ds_base;
@@ -433,17 +440,21 @@ void *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int
 		sht->flags |= 0x10;
 		sheet_setbuf(sht, (char *) ebx + ds_base, esi, edi, eax);
 		make_window8((char *) ebx + ds_base, esi, edi, (char *) ecx + ds_base, 0);
-		sheet_slide(sht, (shtctl->xsize - esi) / 2 & ~3, (shtctl->ysize - edi) / 2);
+		sheet_slide(sht, ((shtctl->xsize - esi) / 2) & ~3, (shtctl->ysize - edi) / 2);
 		sheet_updown(sht, shtctl->top);
 		reg[7] = (int) sht;
 	} else if (edx == 6) {
 		sht = (struct SHEET *) (ebx & 0xfffffffe);
 		putfonts8_asc(sht->buf, sht->bxsize, esi, edi, eax, (char *) ebp + ds_base);
-		sheet_refresh(sht, esi, edi, esi + ecx * 8, edi + 16);
+		if ((ebx & 1) == 0) {
+			sheet_refresh(sht, esi, edi, esi + ecx * 8, edi + 16);
+		}
 	} else if (edx == 7) {
 		sht = (struct SHEET *) (ebx & 0xfffffffe);
 		boxfill8(sht->buf, sht->bxsize, ebp, eax, ecx, esi, edi);
-		sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+		if ((ebx & 1) == 0) {
+			sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+		}
 	} else if (edx == 8) {
 		memman_init((struct MEMMAN *) (ebx + ds_base));
 		ecx &= 0xfffffff0; //以16字节为单位
@@ -457,7 +468,6 @@ void *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int
 	} else if (edx == 11) {
 		sht = (struct SHEET *) (ebx & 0xfffffffe);
 		sht->buf[sht->bxsize * edi + esi] = eax;
-
 		if ((ebx & 1) == 0) {
 			sheet_refresh(sht, esi, edi, esi + 1, edi + 1);
 		}
@@ -467,7 +477,6 @@ void *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int
 	} else if (edx == 13) {
 		sht = (struct SHEET *) (ebx & 0xfffffffe);
 		hrb_api_linewin(sht, eax, ecx, esi, edi, ebp);
-
 		if ((ebx & 1) == 0) {
 			sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
 		}
@@ -600,6 +609,8 @@ void *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int
 			i++;
 		}
 		reg[7] = i;
+	} else if (edx == 27) {
+		reg[7] = task->langmode;
 	}
 	return 0;
 }
